@@ -16,7 +16,7 @@ export function MessageInput({ onSendMessage, userId, username }: MessageInputPr
   const [aiMode, setAiMode] = useState(false)
   const [aiOutputMode, setAiOutputMode] = useState<'public' | 'private'>('public')
   const supabase = createClientSupabase()
-  const typingTimeoutRef = useRef<NodeJS.Timeout>()
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastTypingUpdateRef = useRef<number>(0)
 
   useEffect(() => {

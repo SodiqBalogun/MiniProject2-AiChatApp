@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase/server'
-
-// You can use Together.ai or OpenAI API here
-// For now, this is a placeholder that you'll need to configure with your API key
+import Together from 'together-ai'
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,22 +17,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 })
     }
 
-    // TODO: Replace with your AI API integration
-    // Example with OpenAI:
-    // const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //     'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-    //   },
-    //   body: JSON.stringify({
-    //     model: 'gpt-3.5-turbo',
-    //     messages: [{ role: 'user', content: message }],
-    //   }),
-    // })
+    const apiKey = process.env.TOGETHER_API_KEY
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'Together.ai API key not configured' },
+        { status: 500 }
+      )
+    }
 
-    // For now, return a placeholder response
-    const aiResponse = `AI Response to: "${message}"\n\n[Configure your AI API (OpenAI/Together.ai) in app/api/ai/route.ts]`
+    // Initialize Together.ai client
+    const together = new Together({ apiKey })
+
+    // Get AI response from Together.ai
+    const response = await together.chat.completions.create({
+      model: 'meta-llama/Llama-3-8b-chat-hf', // You can change this to any model you prefer
+      messages: [
+        { role: 'user', content: message },
+      ],
+      max_tokens: 512,
+      temperature: 0.7,
+    })
+
+    const aiResponse = response.choices[0]?.message?.content || 'Sorry, I could not generate a response.'
 
     // Insert AI message into database
     const { data: aiMessage, error } = await supabase
@@ -57,7 +61,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('AI API error:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
     )
   }
