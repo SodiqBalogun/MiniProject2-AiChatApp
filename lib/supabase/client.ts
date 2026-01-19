@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -11,10 +11,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 /**
  * Creates a Supabase client for client-side usage (Client Components, hooks, etc.)
- * 
- * For better Next.js App Router support with automatic cookie handling,
- * consider installing @supabase/ssr: npm install @supabase/ssr
+ * Uses @supabase/ssr for automatic cookie handling between client and server
  */
 export function createClientSupabase() {
-  return createClient(supabaseUrl, supabaseAnonKey)
+  return createBrowserClient(supabaseUrl, supabaseAnonKey)
 }

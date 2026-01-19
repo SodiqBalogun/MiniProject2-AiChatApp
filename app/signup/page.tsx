@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { authClient } from '@/lib/supabase/client-auth'
 import Link from 'next/link'
 
@@ -11,7 +10,6 @@ export default function SignupPage() {
   const [username, setUsername] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,13 +24,12 @@ export default function SignupPage() {
     })
 
     if (result.success) {
-      router.push('/')
-      router.refresh()
+      // Use window.location for full page reload to ensure cookies are sent to server
+      window.location.href = '/'
     } else {
       setError(result.error || 'Failed to sign up')
+      setLoading(false)
     }
-
-    setLoading(false)
   }
 
   return (
