@@ -18,16 +18,46 @@ export function ChatRoom() {
   const [loading, setLoading] = useState(true)
   const supabase = createClientSupabase()
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const userRef = useRef<any>(null)
+  const messagesChannelRef = useRef<any>(null)
+  const typingChannelRef = useRef<any>(null)
+  const cleanupIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Keep userRef in sync with user state
+  useEffect(() => {
+    userRef.current = user
+  }, [user])
 
   useEffect(() => {
+    let mounted = true
+
     const initialize = async () => {
       await loadUser()
+      if (!mounted) return
+      
       await loadMessages()
-      subscribeToMessages()
-      subscribeToTyping()
-      cleanupTyping()
+      if (!mounted) return
+
+      messagesChannelRef.current = subscribeToMessages()
+      typingChannelRef.current = subscribeToTyping()
+      cleanupIntervalRef.current = cleanupTyping()
     }
+    
     initialize()
+
+    // Cleanup on unmount
+    return () => {
+      mounted = false
+      if (messagesChannelRef.current) {
+        supabase.removeChannel(messagesChannelRef.current)
+      }
+      if (typingChannelRef.current) {
+        supabase.removeChannel(typingChannelRef.current)
+      }
+      if (cleanupIntervalRef.current) {
+        clearInterval(cleanupIntervalRef.current)
+      }
+    }
   }, [])
 
   useEffect(() => {
@@ -37,9 +67,11 @@ export function ChatRoom() {
   const loadUser = async () => {
     const { user } = await authClient.getUser()
     setUser(user)
+    userRef.current = user
   }
 
   const loadMessages = async () => {
+    const currentUser = userRef.current
     const { data, error } = await supabase
       .from('messages')
       .select(`
@@ -56,8 +88,13 @@ export function ChatRoom() {
       console.error('Error loading messages:', error)
     } else {
       // Filter out private AI messages that aren't for this user
-      // Note: user might not be loaded yet, so we'll filter in the subscription handler
-      setMessages(data || [])
+      const filtered = (data || []).filter((msg) => {
+        if (msg.is_ai_message && msg.ai_output_mode === 'private') {
+          return msg.user_id === currentUser?.id
+        }
+        return true
+      })
+      setMessages(filtered)
     }
     setLoading(false)
   }
@@ -72,10 +109,12 @@ export function ChatRoom() {
           schema: 'public',
           table: 'messages',
         },
-        (payload) => {
+        async (payload) => {
+          console.log('Received message event:', payload.eventType, payload.new)
+          
           if (payload.eventType === 'INSERT') {
             // Fetch the new message with profile data
-            supabase
+            const { data, error } = await supabase
               .from('messages')
               .select(`
                 *,
@@ -87,28 +126,33 @@ export function ChatRoom() {
               `)
               .eq('id', payload.new.id)
               .single()
-              .then(({ data }) => {
-                if (data) {
-                  // Filter private AI messages
-                  if (data.is_ai_message && data.ai_output_mode === 'private') {
-                    if (data.user_id === user?.id) {
-                      setMessages((prev) => [...prev, data])
-                    }
-                  } else {
-                    setMessages((prev) => [...prev, data])
-                  }
+            
+            if (error) {
+              console.error('Error fetching new message:', error)
+              return
+            }
+            
+            if (data) {
+              const currentUser = userRef.current
+              // Filter private AI messages
+              if (data.is_ai_message && data.ai_output_mode === 'private') {
+                if (data.user_id === currentUser?.id) {
+                  setMessages((prev) => [...prev, data])
                 }
-              })
+              } else {
+                setMessages((prev) => [...prev, data])
+              }
+            }
           } else if (payload.eventType === 'DELETE') {
             setMessages((prev) => prev.filter((msg) => msg.id !== payload.old.id))
           }
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('Messages subscription status:', status)
+      })
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
+    return channel
   }
 
   const subscribeToTyping = () => {
@@ -127,9 +171,7 @@ export function ChatRoom() {
       )
       .subscribe()
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
+    return channel
   }
 
   const loadTypingIndicators = async () => {
@@ -152,7 +194,7 @@ export function ChatRoom() {
         .lt('updated_at', new Date(Date.now() - 3000).toISOString())
     }, 5000)
 
-    return () => clearInterval(interval)
+    return interval
   }
 
   const scrollToBottom = () => {
@@ -160,17 +202,25 @@ export function ChatRoom() {
   }
 
   const handleSendMessage = async (content: string, isAI: boolean = false, outputMode: 'public' | 'private' = 'public') => {
-    if (!user) return
+    if (!user) {
+      console.error('Cannot send message: user not loaded')
+      return
+    }
 
-    const { error } = await supabase.from('messages').insert({
+    console.log('Sending message:', { content, isAI, outputMode, userId: user.id })
+    
+    const { data, error } = await supabase.from('messages').insert({
       user_id: user.id,
       content,
       is_ai_message: isAI,
       ai_output_mode: outputMode,
-    })
+    }).select().single()
 
     if (error) {
       console.error('Error sending message:', error)
+      alert(`Error sending message: ${error.message}`)
+    } else {
+      console.log('Message sent successfully:', data)
     }
   }
 
