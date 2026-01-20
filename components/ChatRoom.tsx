@@ -72,30 +72,71 @@ export function ChatRoom() {
 
   const loadMessages = async () => {
     const currentUser = userRef.current
-    const { data, error } = await supabase
+    
+    // Load messages first (without profile join since user_id references auth.users, not profiles directly)
+    const { data: messagesData, error: messagesError } = await supabase
       .from('messages')
-      .select(`
-        *,
-        profiles:user_id (
-          username,
-          avatar_url,
-          display_name
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: true })
 
-    if (error) {
-      console.error('Error loading messages:', error)
-    } else {
-      // Filter out private AI messages that aren't for this user
-      const filtered = (data || []).filter((msg) => {
-        if (msg.is_ai_message && msg.ai_output_mode === 'private') {
-          return msg.user_id === currentUser?.id
-        }
-        return true
-      })
-      setMessages(filtered)
+    if (messagesError) {
+      console.error('Error loading messages:', messagesError)
+      console.error('Error details:', JSON.stringify(messagesError, null, 2))
+      setMessages([])
+      setLoading(false)
+      return
     }
+
+    if (!messagesData || messagesData.length === 0) {
+      setMessages([])
+      setLoading(false)
+      return
+    }
+
+    // Get unique user IDs
+    const userIds = [...new Set(messagesData.map((msg) => msg.user_id))]
+    
+    // Fetch all profiles in one query
+    const { data: profilesData, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, username, avatar_url, display_name')
+      .in('id', userIds)
+
+    if (profilesError) {
+      console.error('Error loading profiles:', profilesError)
+    }
+
+    // Create a map of user_id -> profile
+    const profilesMap = new Map()
+    if (profilesData) {
+      profilesData.forEach((profile) => {
+        profilesMap.set(profile.id, {
+          username: profile.username,
+          avatar_url: profile.avatar_url,
+          display_name: profile.display_name,
+        })
+      })
+    }
+
+    // Combine messages with profiles
+    const messagesWithProfiles = messagesData.map((msg) => ({
+      ...msg,
+      profiles: profilesMap.get(msg.user_id) || {
+        username: msg.user_id.substring(0, 8), // Fallback username
+        avatar_url: null,
+        display_name: null,
+      },
+    }))
+
+    // Filter out private AI messages that aren't for this user
+    const filtered = messagesWithProfiles.filter((msg) => {
+      if (msg.is_ai_message && msg.ai_output_mode === 'private') {
+        return msg.user_id === currentUser?.id
+      }
+      return true
+    })
+    
+    setMessages(filtered)
     setLoading(false)
   }
 
@@ -113,35 +154,44 @@ export function ChatRoom() {
           console.log('Received message event:', payload.eventType, payload.new)
           
           if (payload.eventType === 'INSERT') {
-            // Fetch the new message with profile data
-            const { data, error } = await supabase
+            // Fetch the new message
+            const { data: messageData, error: messageError } = await supabase
               .from('messages')
-              .select(`
-                *,
-                profiles:user_id (
-                  username,
-                  avatar_url,
-                  display_name
-                )
-              `)
+              .select('*')
               .eq('id', payload.new.id)
               .single()
             
-            if (error) {
-              console.error('Error fetching new message:', error)
+            if (messageError) {
+              console.error('Error fetching new message:', messageError)
               return
             }
             
-            if (data) {
-              const currentUser = userRef.current
-              // Filter private AI messages
-              if (data.is_ai_message && data.ai_output_mode === 'private') {
-                if (data.user_id === currentUser?.id) {
-                  setMessages((prev) => [...prev, data])
-                }
-              } else {
+            if (!messageData) return
+
+            // Fetch profile for this user
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('username, avatar_url, display_name')
+              .eq('id', messageData.user_id)
+              .single()
+
+            const data = {
+              ...messageData,
+              profiles: profileData || {
+                username: messageData.user_id.substring(0, 8),
+                avatar_url: null,
+                display_name: null,
+              },
+            }
+
+            const currentUser = userRef.current
+            // Filter private AI messages
+            if (data.is_ai_message && data.ai_output_mode === 'private') {
+              if (data.user_id === currentUser?.id) {
                 setMessages((prev) => [...prev, data])
               }
+            } else {
+              setMessages((prev) => [...prev, data])
             }
           } else if (payload.eventType === 'DELETE') {
             setMessages((prev) => prev.filter((msg) => msg.id !== payload.old.id))
