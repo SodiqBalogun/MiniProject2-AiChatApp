@@ -29,8 +29,9 @@ export function ThemeToggle() {
     setCurrentTheme(getTheme())
 
     // Listen for custom theme-change events (when theme changes in same window)
-    const handleThemeChangeEvent = (e: CustomEvent<Theme>) => {
-      setCurrentTheme(e.detail)
+    const handleThemeChangeEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<Theme>
+      setCurrentTheme(customEvent.detail)
     }
 
     // Listen for storage changes (e.g., theme changed in another tab)
@@ -56,12 +57,12 @@ export function ThemeToggle() {
       }
     }
 
-    window.addEventListener('theme-change', handleThemeChangeEvent as EventListener)
+    window.addEventListener('theme-change', handleThemeChangeEvent)
     window.addEventListener('storage', handleStorageChange)
     mediaQuery.addEventListener('change', handleSystemThemeChange)
 
     return () => {
-      window.removeEventListener('theme-change', handleThemeChangeEvent as EventListener)
+      window.removeEventListener('theme-change', handleThemeChangeEvent)
       window.removeEventListener('storage', handleStorageChange)
       mediaQuery.removeEventListener('change', handleSystemThemeChange)
     }

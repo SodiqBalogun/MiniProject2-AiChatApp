@@ -16,19 +16,20 @@ export default function SettingsPage() {
     loadSettings()
     
     // Listen for theme changes to sync with database
-    const handleThemeChange = async (e: CustomEvent<Theme>) => {
+    const handleThemeChange = async (e: Event) => {
+      const customEvent = e as CustomEvent<Theme>
       const { user } = await authClient.getUser()
       if (user) {
         await supabase
           .from('profiles')
-          .update({ theme_preference: e.detail })
+          .update({ theme_preference: customEvent.detail })
           .eq('id', user.id)
       }
     }
 
-    window.addEventListener('theme-change', handleThemeChange as EventListener)
+    window.addEventListener('theme-change', handleThemeChange)
     return () => {
-      window.removeEventListener('theme-change', handleThemeChange as EventListener)
+      window.removeEventListener('theme-change', handleThemeChange)
     }
   }, [])
 
