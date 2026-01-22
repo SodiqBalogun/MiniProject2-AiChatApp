@@ -20,7 +20,8 @@ CREATE TABLE IF NOT EXISTS public.messages (
   is_ai_message BOOLEAN DEFAULT FALSE,
   ai_response_to UUID REFERENCES public.messages(id) ON DELETE SET NULL,
   ai_output_mode TEXT DEFAULT 'public', -- 'public' or 'private'
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE
 );
 
 -- Typing indicators table
@@ -62,6 +63,11 @@ CREATE POLICY "Authenticated users can insert messages"
 CREATE POLICY "Users can delete their own messages"
   ON public.messages FOR DELETE
   USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own messages"
+  ON public.messages FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
 
 -- Typing indicators policies
 CREATE POLICY "Anyone can view typing indicators"

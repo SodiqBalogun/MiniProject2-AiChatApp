@@ -193,6 +193,40 @@ export function ChatRoom() {
             } else {
               setMessages((prev) => [...prev, data])
             }
+          } else if (payload.eventType === 'UPDATE') {
+            // Fetch the updated message with profile
+            const { data: messageData, error: messageError } = await supabase
+              .from('messages')
+              .select('*')
+              .eq('id', payload.new.id)
+              .single()
+            
+            if (messageError) {
+              console.error('Error fetching updated message:', messageError)
+              return
+            }
+            
+            if (!messageData) return
+
+            // Fetch profile for this user
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('username, avatar_url, display_name')
+              .eq('id', messageData.user_id)
+              .single()
+
+            const updatedMessage = {
+              ...messageData,
+              profiles: profileData || {
+                username: messageData.user_id.substring(0, 8),
+                avatar_url: null,
+                display_name: null,
+              },
+            }
+
+            setMessages((prev) =>
+              prev.map((msg) => (msg.id === updatedMessage.id ? updatedMessage : msg))
+            )
           } else if (payload.eventType === 'DELETE') {
             setMessages((prev) => prev.filter((msg) => msg.id !== payload.old.id))
           }
@@ -274,6 +308,45 @@ export function ChatRoom() {
     }
   }
 
+  const handleEditMessage = async (messageId: string, newContent: string) => {
+    if (!user) {
+      console.error('Cannot edit message: user not loaded')
+      return
+    }
+
+    const { error } = await supabase
+      .from('messages')
+      .update({
+        content: newContent,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', messageId)
+      .eq('user_id', user.id) // Ensure user owns the message
+
+    if (error) {
+      console.error('Error editing message:', error)
+      alert(`Error editing message: ${error.message}`)
+    }
+  }
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!user) {
+      console.error('Cannot delete message: user not loaded')
+      return
+    }
+
+    const { error } = await supabase
+      .from('messages')
+      .delete()
+      .eq('id', messageId)
+      .eq('user_id', user.id) // Ensure user owns the message
+
+    if (error) {
+      console.error('Error deleting message:', error)
+      alert(`Error deleting message: ${error.message}`)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center" style={{ backgroundColor: 'var(--background)' }}>
@@ -306,7 +379,12 @@ export function ChatRoom() {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4" style={{ backgroundColor: 'var(--background)' }}>
         <ChatSummary messages={messages} />
-        <MessageList messages={messages} currentUserId={user.id} />
+        <MessageList 
+          messages={messages} 
+          currentUserId={user.id}
+          onEdit={handleEditMessage}
+          onDelete={handleDeleteMessage}
+        />
         <TypingIndicatorComponent usernames={typingUsers} />
         <div ref={messagesEndRef} />
       </div>

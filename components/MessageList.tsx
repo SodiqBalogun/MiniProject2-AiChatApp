@@ -6,9 +6,11 @@ import { MessageItem } from './MessageItem'
 interface MessageListProps {
   messages: Message[]
   currentUserId: string
+  onEdit?: (messageId: string, newContent: string) => void
+  onDelete?: (messageId: string) => void
 }
 
-export function MessageList({ messages, currentUserId }: MessageListProps) {
+export function MessageList({ messages, currentUserId, onEdit, onDelete }: MessageListProps) {
   if (messages.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -26,6 +28,8 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
           key={message.id}
           message={message}
           isOwnMessage={message.user_id === currentUserId}
+          onEdit={onEdit}
+          onDelete={onDelete}
         />
       ))}
     </div>

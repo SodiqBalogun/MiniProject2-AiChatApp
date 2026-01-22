@@ -6,6 +6,7 @@ export interface Message {
   ai_response_to?: string | null
   ai_output_mode?: 'public' | 'private'
   created_at: string
+  updated_at?: string
   profiles?: {
     username: string
     avatar_url?: string | null
