@@ -29,7 +29,7 @@ export function MessageItem({ message, isOwnMessage }: MessageItemProps) {
       }`}
     >
       {/* Avatar */}
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zinc-200 dark:bg-zinc-800">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: 'var(--muted)' }}>
         {avatarUrl ? (
           <img
             src={avatarUrl}
@@ -37,7 +37,7 @@ export function MessageItem({ message, isOwnMessage }: MessageItemProps) {
             className="h-10 w-10 rounded-full object-cover"
           />
         ) : (
-          <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+          <span className="text-sm font-medium" style={{ color: 'var(--muted-foreground)' }}>
             {username.charAt(0).toUpperCase()}
           </span>
         )}
@@ -54,12 +54,12 @@ export function MessageItem({ message, isOwnMessage }: MessageItemProps) {
             className={`text-sm font-medium ${
               isAI
                 ? 'text-purple-600 dark:text-purple-400'
-                : 'text-zinc-900 dark:text-zinc-100'
+                : 'text-foreground'
             }`}
           >
             {isAI ? '🤖 AI Assistant' : username}
           </span>
-          <span className="text-xs text-zinc-500 dark:text-zinc-400">
+          <span className="text-xs text-muted-foreground">
             {formatTime(message.created_at)}
           </span>
         </div>
@@ -69,8 +69,9 @@ export function MessageItem({ message, isOwnMessage }: MessageItemProps) {
               ? 'bg-blue-500 text-white'
               : isAI
               ? 'bg-purple-100 text-purple-900 dark:bg-purple-900/30 dark:text-purple-100'
-              : 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'
+              : ''
           }`}
+          style={!isOwnMessage && !isAI ? { backgroundColor: 'var(--muted)', color: 'var(--foreground)' } : undefined}
         >
           <p className="whitespace-pre-wrap break-words">{message.content}</p>
         </div>

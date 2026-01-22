@@ -91,7 +91,7 @@ export function MessageInput({ onSendMessage, userId, username }: MessageInputPr
   }
 
   return (
-    <div className="border-t border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="border-t p-4" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--background)' }}>
       {/* AI Mode Toggle */}
       <div className="mb-2 flex items-center gap-2">
         <button
@@ -143,9 +143,11 @@ export function MessageInput({ onSendMessage, userId, username }: MessageInputPr
             }
           }}
           placeholder={aiMode ? 'Ask the AI assistant...' : 'Type a message...'}
-          className="flex-1 resize-none rounded-lg border border-zinc-300 bg-white px-4 py-2 text-zinc-900 placeholder-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder-zinc-400"
-          rows={1}
-          style={{
+          className="flex-1 resize-none rounded-lg border px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          style={{ 
+            borderColor: 'var(--border)', 
+            backgroundColor: 'var(--background)', 
+            color: 'var(--foreground)',
             minHeight: '44px',
             maxHeight: '120px',
           }}

@@ -42,7 +42,16 @@ export function UserMenu({ user }: UserMenuProps) {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+        className="flex items-center gap-2 rounded-lg px-3 py-2 transition-colors"
+        style={{ 
+          '--hover-bg': 'var(--muted)',
+        } as React.CSSProperties & { '--hover-bg': string }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = 'var(--muted)'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = 'transparent'
+        }}
       >
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-sm font-medium text-white">
           {avatarUrl ? (
@@ -55,15 +64,15 @@ export function UserMenu({ user }: UserMenuProps) {
             username.charAt(0).toUpperCase()
           )}
         </div>
-        <span className="hidden text-sm font-medium text-zinc-900 dark:text-zinc-100 sm:block">
+        <span className="hidden text-sm font-medium sm:block" style={{ color: 'var(--foreground)' }}>
           {username}
         </span>
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border shadow-lg" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--background)' }}>
           <div className="p-2">
-            <div className="px-3 py-2 text-sm text-zinc-600 dark:text-zinc-400">
+            <div className="px-3 py-2 text-sm" style={{ color: 'var(--muted-foreground)' }}>
               {user.email}
             </div>
             <button
@@ -71,7 +80,14 @@ export function UserMenu({ user }: UserMenuProps) {
                 setIsOpen(false)
                 router.push('/profile')
               }}
-              className="flex w-full items-center gap-2 rounded px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              className="flex w-full items-center gap-2 rounded px-3 py-2 text-sm transition-colors"
+              style={{ color: 'var(--foreground)' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--muted)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent'
+              }}
             >
               <User className="h-4 w-4" />
               Profile
@@ -81,7 +97,14 @@ export function UserMenu({ user }: UserMenuProps) {
                 setIsOpen(false)
                 router.push('/settings')
               }}
-              className="flex w-full items-center gap-2 rounded px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              className="flex w-full items-center gap-2 rounded px-3 py-2 text-sm transition-colors"
+              style={{ color: 'var(--foreground)' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--muted)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent'
+              }}
             >
               <Settings className="h-4 w-4" />
               Settings

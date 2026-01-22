@@ -42,7 +42,18 @@ export function ChatSummary({ messages }: ChatSummaryProps) {
       <button
         onClick={generateSummary}
         disabled={loading}
-        className="flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 disabled:opacity-50"
+        className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors disabled:opacity-50"
+        style={{ 
+          borderColor: 'var(--border)', 
+          backgroundColor: 'var(--background)', 
+          color: 'var(--foreground)'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = 'var(--muted)'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = 'var(--background)'
+        }}
       >
         {loading ? (
           <>

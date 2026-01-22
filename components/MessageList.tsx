@@ -12,7 +12,7 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
   if (messages.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-zinc-500 dark:text-zinc-400">
+        <p style={{ color: 'var(--muted-foreground)' }}>
           No messages yet. Start the conversation!
         </p>
       </div>

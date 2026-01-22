@@ -276,25 +276,25 @@ export function ChatRoom() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-zinc-600 dark:text-zinc-400">Loading chat...</div>
+      <div className="flex h-screen items-center justify-center" style={{ backgroundColor: 'var(--background)' }}>
+        <div style={{ color: 'var(--muted-foreground)' }}>Loading chat...</div>
       </div>
     )
   }
 
   if (!user) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-zinc-600 dark:text-zinc-400">Please log in to access the chat</div>
+      <div className="flex h-screen items-center justify-center" style={{ backgroundColor: 'var(--background)' }}>
+        <div style={{ color: 'var(--muted-foreground)' }}>Please log in to access the chat</div>
       </div>
     )
   }
 
   return (
-    <div className="flex h-screen flex-col bg-white dark:bg-zinc-900">
+    <div className="flex h-screen flex-col" style={{ backgroundColor: 'var(--background)' }}>
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
-        <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+      <header className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--background)' }}>
+        <h1 className="text-xl font-semibold" style={{ color: 'var(--foreground)' }}>
           AI Chat Room
         </h1>
         <div className="flex items-center gap-3">
@@ -304,7 +304,7 @@ export function ChatRoom() {
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4" style={{ backgroundColor: 'var(--background)' }}>
         <ChatSummary messages={messages} />
         <MessageList messages={messages} currentUserId={user.id} />
         <TypingIndicatorComponent usernames={typingUsers} />
