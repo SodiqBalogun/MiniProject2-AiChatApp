@@ -104,7 +104,7 @@ export function MessageItem({ message, isOwnMessage, onEdit, onDelete }: Message
         </div>
         
         {isEditing ? (
-          <div className="flex flex-col gap-2 max-w-[70%]">
+          <div className="flex flex-col gap-2 max-w-md">
             <textarea
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
@@ -144,7 +144,7 @@ export function MessageItem({ message, isOwnMessage, onEdit, onDelete }: Message
         ) : (
           <div className="group relative flex items-start gap-2">
             <div
-              className={`max-w-[70%] rounded-lg px-4 py-2 ${
+              className={`max-w-md rounded-lg px-4 py-2 ${
                 isOwnMessage
                   ? 'bg-blue-500 text-white'
                   : isAI
