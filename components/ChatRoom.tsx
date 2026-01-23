@@ -18,6 +18,7 @@ export function ChatRoom() {
   const [loading, setLoading] = useState(true)
   const supabase = createClientSupabase()
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const userRef = useRef<any>(null)
   const messagesChannelRef = useRef<any>(null)
   const typingChannelRef = useRef<any>(null)
@@ -60,8 +61,20 @@ export function ChatRoom() {
     }
   }, [])
 
+  // Track previous message count to detect new messages vs deletions
+  const prevMessageCountRef = useRef<number>(0)
+  
   useEffect(() => {
-    scrollToBottom()
+    const currentCount = messages.length
+    const prevCount = prevMessageCountRef.current
+    
+    // Only scroll to bottom if a new message was added (count increased)
+    // Don't scroll on deletions (count decreased) or initial load (prevCount is 0)
+    if (prevCount > 0 && currentCount > prevCount) {
+      scrollToBottom()
+    }
+    
+    prevMessageCountRef.current = currentCount
   }, [messages])
 
   const loadUser = async () => {
@@ -285,6 +298,10 @@ export function ChatRoom() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
+  const scrollToTop = () => {
+    messagesContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   const handleSendMessage = async (content: string, isAI: boolean = false, outputMode: 'public' | 'private' = 'public') => {
     if (!user) {
       console.error('Cannot send message: user not loaded')
@@ -377,7 +394,11 @@ export function ChatRoom() {
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4" style={{ backgroundColor: 'var(--background)' }}>
+      <div 
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto px-4 py-4" 
+        style={{ backgroundColor: 'var(--background)' }}
+      >
         <ChatSummary messages={messages} />
         <MessageList 
           messages={messages} 
@@ -394,6 +415,8 @@ export function ChatRoom() {
         onSendMessage={handleSendMessage}
         userId={user.id}
         username={user.user_metadata?.username || user.email?.split('@')[0] || 'User'}
+        onScrollToTop={scrollToTop}
+        onScrollToBottom={scrollToBottom}
       />
     </div>
   )
