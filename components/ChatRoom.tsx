@@ -9,13 +9,16 @@ import { MessageInput } from './MessageInput'
 import { TypingIndicator as TypingIndicatorComponent } from './TypingIndicator'
 import { ThemeToggle } from './ThemeToggle'
 import { UserMenu } from './UserMenu'
-import { ChatSummary } from './ChatSummary'
+import { ChatSummaryButton, ChatSummaryDisplay } from './ChatSummary'
 
 export function ChatRoom() {
   const [messages, setMessages] = useState<Message[]>([])
   const [typingUsers, setTypingUsers] = useState<string[]>([])
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [summary, setSummary] = useState<string | null>(null)
+  const [summaryLoading, setSummaryLoading] = useState(false)
+  const [summaryOpen, setSummaryOpen] = useState(false)
   const supabase = createClientSupabase()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
@@ -364,6 +367,29 @@ export function ChatRoom() {
     }
   }
 
+  const handleGenerateSummary = async () => {
+    setSummaryLoading(true)
+    try {
+      const response = await fetch('/api/ai/summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: messages.slice(-50), // Last 50 messages
+        }),
+      })
+
+      const data = await response.json()
+      if (data.summary) {
+        setSummary(data.summary)
+        setSummaryOpen(true)
+      }
+    } catch (error) {
+      console.error('Error generating summary:', error)
+    } finally {
+      setSummaryLoading(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center" style={{ backgroundColor: 'var(--background)' }}>
@@ -383,10 +409,15 @@ export function ChatRoom() {
   return (
     <div className="flex h-screen flex-col" style={{ backgroundColor: 'var(--background)' }}>
       {/* Header */}
-      <header className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--background)' }}>
-        <h1 className="text-xl font-semibold" style={{ color: 'var(--foreground)' }}>
-          AI Chat Room
-        </h1>
+      <header className="relative z-40 flex items-center justify-between border-b px-4 py-3" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--background)' }}>
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-semibold" style={{ color: 'var(--foreground)' }}>
+            AI Chat Room
+          </h1>
+          {messages.length > 0 && (
+            <ChatSummaryButton onClick={handleGenerateSummary} loading={summaryLoading} />
+          )}
+        </div>
         <div className="flex items-center gap-3">
           <ThemeToggle />
           <UserMenu user={user} />
@@ -399,7 +430,11 @@ export function ChatRoom() {
         className="flex-1 overflow-y-auto px-4 py-4" 
         style={{ backgroundColor: 'var(--background)' }}
       >
-        <ChatSummary messages={messages} />
+        <ChatSummaryDisplay 
+          summary={summary} 
+          isOpen={summaryOpen} 
+          onClose={() => setSummaryOpen(false)} 
+        />
         <MessageList 
           messages={messages} 
           currentUserId={user.id}

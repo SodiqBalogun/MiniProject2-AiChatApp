@@ -70,7 +70,7 @@ export function UserMenu({ user }: UserMenuProps) {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border shadow-lg" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--background)' }}>
+        <div className="absolute right-0 top-full z-50 mt-2 w-48 rounded-lg border shadow-lg" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--background)' }}>
           <div className="p-2">
             <div className="px-3 py-2 text-sm" style={{ color: 'var(--muted-foreground)' }}>
               {user.email}
