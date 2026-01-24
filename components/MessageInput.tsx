@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { createClientSupabase } from '@/lib/supabase/client'
-import { Send, Sparkles, ChevronUp, ChevronDown } from 'lucide-react'
+import { Send, Sparkles, ChevronUp, ChevronDown, History } from 'lucide-react'
 import { getTheme } from '@/lib/theme'
 
 interface MessageInputProps {
@@ -11,13 +11,15 @@ interface MessageInputProps {
   username: string
   onScrollToTop?: () => void
   onScrollToBottom?: () => void
+  onAIComplete?: () => void
+  onToggleAIHistory?: () => void
+  aiHistoryOpen?: boolean
 }
 
-export function MessageInput({ onSendMessage, userId, username, onScrollToTop, onScrollToBottom }: MessageInputProps) {
+export function MessageInput({ onSendMessage, userId, username, onScrollToTop, onScrollToBottom, onAIComplete, onToggleAIHistory, aiHistoryOpen }: MessageInputProps) {
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [aiMode, setAiMode] = useState(false)
-  const [aiOutputMode, setAiOutputMode] = useState<'public' | 'private'>('public')
   const [counterpartColors, setCounterpartColors] = useState({ bg: '#f4f4f5', fg: '#18181b' }) // Default light counterpart
   const supabase = createClientSupabase()
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -166,15 +168,16 @@ export function MessageInput({ onSendMessage, userId, username, onScrollToTop, o
 
     // Send message
     if (aiMode) {
-      // For AI messages, we'll handle this in the API route
-      await fetch('/api/ai', {
+      const res = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: messageContent,
-          outputMode: aiOutputMode,
+          outputMode: 'private',
         }),
       })
+      const data = await res.json().catch(() => ({}))
+      if (data?.success && onAIComplete) onAIComplete()
     } else {
       onSendMessage(messageContent, false, 'public')
     }
@@ -195,29 +198,23 @@ export function MessageInput({ onSendMessage, userId, username, onScrollToTop, o
           <Sparkles className="h-4 w-4" />
           AI Mode
         </button>
+        {onToggleAIHistory && (
+          <button
+            onClick={onToggleAIHistory}
+            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors ${
+              aiHistoryOpen
+                ? 'bg-purple-100 text-purple-900 dark:bg-purple-900/30 dark:text-purple-100'
+                : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700'
+            }`}
+          >
+            <History className="h-4 w-4" />
+            AI Mode History
+          </button>
+        )}
         {aiMode && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => setAiOutputMode('public')}
-              className={`rounded px-2 py-1 text-xs transition-colors ${
-                aiOutputMode === 'public'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400'
-              }`}
-            >
-              Public
-            </button>
-            <button
-              onClick={() => setAiOutputMode('private')}
-              className={`rounded px-2 py-1 text-xs transition-colors ${
-                aiOutputMode === 'private'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400'
-              }`}
-            >
-              Private
-            </button>
-          </div>
+          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+            Output is private. Use &quot;Share with Chat&quot; in AI Mode History to post.
+          </span>
         )}
         {onScrollToTop && onScrollToBottom && (
           <div className="ml-auto flex items-center gap-1">

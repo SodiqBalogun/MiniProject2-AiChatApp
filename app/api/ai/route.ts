@@ -40,14 +40,15 @@ export async function POST(request: NextRequest) {
 
     const aiResponse = response.choices[0]?.message?.content || 'Sorry, I could not generate a response.'
 
-    // Insert AI message into database
+    // Insert AI message into database (private by default; prompt stored for history)
     const { data: aiMessage, error } = await supabase
       .from('messages')
       .insert({
         user_id: user.id,
         content: aiResponse,
         is_ai_message: true,
-        ai_output_mode: outputMode || 'public',
+        ai_output_mode: outputMode || 'private',
+        ai_prompt: message,
       })
       .select()
       .single()

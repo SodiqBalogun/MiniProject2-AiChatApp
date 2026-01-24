@@ -5,6 +5,7 @@ export interface Message {
   is_ai_message: boolean
   ai_response_to?: string | null
   ai_output_mode?: 'public' | 'private'
+  ai_prompt?: string | null
   created_at: string
   updated_at?: string
   profiles?: {

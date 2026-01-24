@@ -9,7 +9,8 @@ import { MessageInput } from './MessageInput'
 import { TypingIndicator as TypingIndicatorComponent } from './TypingIndicator'
 import { ThemeToggle } from './ThemeToggle'
 import { UserMenu } from './UserMenu'
-import { ChatSummaryButton, ChatSummaryPanel } from './ChatSummary'
+import { ChatSummaryButton, ChatSummaryPanel, ChatSummaryToggleButton } from './ChatSummary'
+import { AIModeHistoryFloating, formatShareBlock, type AIInteraction } from './AIModeHistory'
 
 export function ChatRoom() {
   const [messages, setMessages] = useState<Message[]>([])
@@ -20,6 +21,9 @@ export function ChatRoom() {
   const [summaryLoading, setSummaryLoading] = useState(false)
   const [summaryOpen, setSummaryOpen] = useState(false)
   const [summaryError, setSummaryError] = useState<string | null>(null)
+  const [aiInteractions, setAiInteractions] = useState<AIInteraction[]>([])
+  const [aiHistoryOpen, setAiHistoryOpen] = useState(false)
+  const [sharingId, setSharingId] = useState<string | null>(null)
   const supabase = createClientSupabase()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
@@ -41,6 +45,9 @@ export function ChatRoom() {
       if (!mounted) return
       
       await loadMessages()
+      if (!mounted) return
+
+      await loadAIInteractions()
       if (!mounted) return
 
       messagesChannelRef.current = subscribeToMessages()
@@ -145,16 +152,39 @@ export function ChatRoom() {
       },
     }))
 
-    // Filter out private AI messages that aren't for this user
-    const filtered = messagesWithProfiles.filter((msg) => {
-      if (msg.is_ai_message && msg.ai_output_mode === 'private') {
-        return msg.user_id === currentUser?.id
-      }
-      return true
-    })
+    // Exclude all AI messages from main feed (they live in AI Mode History; shared blocks are non-AI)
+    const filtered = messagesWithProfiles.filter((msg) => !msg.is_ai_message)
     
     setMessages(filtered)
     setLoading(false)
+  }
+
+  const loadAIInteractions = async () => {
+    const currentUser = userRef.current
+    if (!currentUser?.id) {
+      setAiInteractions([])
+      return
+    }
+    const { data, error } = await supabase
+      .from('messages')
+      .select('id, content, ai_prompt, created_at')
+      .eq('user_id', currentUser.id)
+      .eq('is_ai_message', true)
+      .not('ai_prompt', 'is', null)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error loading AI interactions:', error)
+      setAiInteractions([])
+      return
+    }
+    const list: AIInteraction[] = (data || []).map((row) => ({
+      id: row.id,
+      prompt: row.ai_prompt ?? '',
+      output: row.content ?? '',
+      created_at: row.created_at,
+    }))
+    setAiInteractions(list)
   }
 
   const subscribeToMessages = () => {
@@ -169,82 +199,60 @@ export function ChatRoom() {
         },
         async (payload) => {
           console.log('Received message event:', payload.eventType, payload.new)
-          
+          const currentUser = userRef.current
+
           if (payload.eventType === 'INSERT') {
-            // Fetch the new message
             const { data: messageData, error: messageError } = await supabase
               .from('messages')
               .select('*')
               .eq('id', payload.new.id)
               .single()
-            
-            if (messageError) {
-              console.error('Error fetching new message:', messageError)
-              return
-            }
-            
-            if (!messageData) return
+            if (messageError || !messageData) return
 
-            // Fetch profile for this user
+            // AI messages live in AI Mode History only; never add to main feed
+            // Our own AI inserts are refetched via onAIComplete; skip to avoid duplicates
+            if (messageData.is_ai_message) return
+
             const { data: profileData } = await supabase
               .from('profiles')
               .select('username, avatar_url, display_name')
               .eq('id', messageData.user_id)
               .single()
-
             const data = {
               ...messageData,
-              profiles: profileData || {
-                username: messageData.user_id.substring(0, 8),
-                avatar_url: null,
-                display_name: null,
-              },
+              profiles: profileData || { username: messageData.user_id.substring(0, 8), avatar_url: null, display_name: null },
             }
-
-            const currentUser = userRef.current
-            // Filter private AI messages
-            if (data.is_ai_message && data.ai_output_mode === 'private') {
-              if (data.user_id === currentUser?.id) {
-                setMessages((prev) => [...prev, data])
-              }
-            } else {
-              setMessages((prev) => [...prev, data])
-            }
+            setMessages((prev) => [...prev, data])
           } else if (payload.eventType === 'UPDATE') {
-            // Fetch the updated message with profile
+            const updated = payload.new as { id: string; is_ai_message?: boolean; user_id?: string }
+            if (updated.is_ai_message && updated.user_id === currentUser?.id) {
+              loadAIInteractions()
+              return
+            }
             const { data: messageData, error: messageError } = await supabase
               .from('messages')
               .select('*')
               .eq('id', payload.new.id)
               .single()
-            
-            if (messageError) {
-              console.error('Error fetching updated message:', messageError)
-              return
-            }
-            
-            if (!messageData) return
-
-            // Fetch profile for this user
+            if (messageError || !messageData || messageData.is_ai_message) return
             const { data: profileData } = await supabase
               .from('profiles')
               .select('username, avatar_url, display_name')
               .eq('id', messageData.user_id)
               .single()
-
             const updatedMessage = {
               ...messageData,
-              profiles: profileData || {
-                username: messageData.user_id.substring(0, 8),
-                avatar_url: null,
-                display_name: null,
-              },
+              profiles: profileData || { username: messageData.user_id.substring(0, 8), avatar_url: null, display_name: null },
             }
-
             setMessages((prev) =>
               prev.map((msg) => (msg.id === updatedMessage.id ? updatedMessage : msg))
             )
           } else if (payload.eventType === 'DELETE') {
+            const deleted = payload.old as { id: string; is_ai_message?: boolean; user_id?: string }
+            if (deleted.is_ai_message && deleted.user_id === currentUser?.id) {
+              setAiInteractions((prev) => prev.filter((i) => i.id !== deleted.id))
+              return
+            }
             setMessages((prev) => prev.filter((msg) => msg.id !== payload.old.id))
           }
         }
@@ -368,6 +376,30 @@ export function ChatRoom() {
     }
   }
 
+  const handleAIComplete = () => {
+    loadAIInteractions()
+  }
+
+  const handleShareToChat = async (interaction: AIInteraction) => {
+    if (!user) return
+    const displayName = user.user_metadata?.username || user.email?.split('@')[0] || 'User'
+    const content = formatShareBlock(displayName, interaction.prompt, interaction.output)
+    setSharingId(interaction.id)
+    try {
+      const { error } = await supabase.from('messages').insert({
+        user_id: user.id,
+        content,
+        is_ai_message: false,
+      })
+      if (error) throw error
+    } catch (e) {
+      console.error('Error sharing to chat:', e)
+      alert('Failed to share to chat.')
+    } finally {
+      setSharingId(null)
+    }
+  }
+
   const handleGenerateSummary = async () => {
     setSummaryLoading(true)
     setSummaryError(null)
@@ -423,7 +455,13 @@ export function ChatRoom() {
             AI Chat Room
           </h1>
           {messages.length > 0 && (
-            <ChatSummaryButton onClick={handleGenerateSummary} loading={summaryLoading} />
+            <>
+              <ChatSummaryButton onClick={handleGenerateSummary} loading={summaryLoading} />
+              <ChatSummaryToggleButton
+                onClick={() => setSummaryOpen((o) => !o)}
+                isExpanded={summaryOpen}
+              />
+            </>
           )}
         </div>
         <div className="flex items-center gap-3">
@@ -431,6 +469,15 @@ export function ChatRoom() {
           <UserMenu user={user} />
         </div>
       </header>
+
+      {aiHistoryOpen && (
+        <AIModeHistoryFloating
+          interactions={aiInteractions}
+          onShareToChat={handleShareToChat}
+          onClose={() => setAiHistoryOpen(false)}
+          sharingId={sharingId}
+        />
+      )}
 
       {messages.length > 0 && (
         <ChatSummaryPanel
@@ -465,6 +512,9 @@ export function ChatRoom() {
         username={user.user_metadata?.username || user.email?.split('@')[0] || 'User'}
         onScrollToTop={scrollToTop}
         onScrollToBottom={scrollToBottom}
+        onAIComplete={handleAIComplete}
+        onToggleAIHistory={() => setAiHistoryOpen((o) => !o)}
+        aiHistoryOpen={aiHistoryOpen}
       />
     </div>
   )

@@ -40,6 +40,39 @@ export function ChatSummaryButton({ onClick, loading }: ChatSummaryButtonProps) 
   )
 }
 
+interface ChatSummaryToggleButtonProps {
+  onClick: () => void
+  isExpanded: boolean
+}
+
+export function ChatSummaryToggleButton({ onClick, isExpanded }: ChatSummaryToggleButtonProps) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors"
+      style={{
+        borderColor: 'var(--border)',
+        backgroundColor: 'var(--background)',
+        color: 'var(--foreground)',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = 'var(--muted)'
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = 'var(--background)'
+      }}
+    >
+      <FileText className="h-4 w-4" />
+      Chat Summary
+      {isExpanded ? (
+        <ChevronUp className="h-4 w-4" />
+      ) : (
+        <ChevronDown className="h-4 w-4" />
+      )}
+    </button>
+  )
+}
+
 interface ChatSummaryPanelProps {
   summary: string | null
   isExpanded: boolean
