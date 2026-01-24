@@ -28,9 +28,9 @@ export async function POST(request: NextRequest) {
     // Initialize Together.ai client
     const together = new Together({ apiKey })
 
-    // Get AI response from Together.ai
+    // Get AI response from Together.ai (serverless model - no dedicated endpoint required)
     const response = await together.chat.completions.create({
-      model: 'meta-llama/Llama-3-8b-chat-hf', // You can change this to any model you prefer
+      model: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
       messages: [
         { role: 'user', content: message },
       ],

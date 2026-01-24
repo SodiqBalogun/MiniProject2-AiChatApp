@@ -9,7 +9,7 @@ import { MessageInput } from './MessageInput'
 import { TypingIndicator as TypingIndicatorComponent } from './TypingIndicator'
 import { ThemeToggle } from './ThemeToggle'
 import { UserMenu } from './UserMenu'
-import { ChatSummaryButton, ChatSummaryDisplay } from './ChatSummary'
+import { ChatSummaryButton, ChatSummaryPanel } from './ChatSummary'
 
 export function ChatRoom() {
   const [messages, setMessages] = useState<Message[]>([])
@@ -19,6 +19,7 @@ export function ChatRoom() {
   const [summary, setSummary] = useState<string | null>(null)
   const [summaryLoading, setSummaryLoading] = useState(false)
   const [summaryOpen, setSummaryOpen] = useState(false)
+  const [summaryError, setSummaryError] = useState<string | null>(null)
   const supabase = createClientSupabase()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
@@ -369,6 +370,7 @@ export function ChatRoom() {
 
   const handleGenerateSummary = async () => {
     setSummaryLoading(true)
+    setSummaryError(null)
     try {
       const response = await fetch('/api/ai/summary', {
         method: 'POST',
@@ -379,12 +381,18 @@ export function ChatRoom() {
       })
 
       const data = await response.json()
+      if (!response.ok || data.error) {
+        setSummaryError(data.error || 'Failed to generate summary')
+        return
+      }
       if (data.summary) {
         setSummary(data.summary)
+        setSummaryError(null)
         setSummaryOpen(true)
       }
     } catch (error) {
       console.error('Error generating summary:', error)
+      setSummaryError('Failed to generate summary')
     } finally {
       setSummaryLoading(false)
     }
@@ -424,17 +432,22 @@ export function ChatRoom() {
         </div>
       </header>
 
+      {messages.length > 0 && (
+        <ChatSummaryPanel
+          summary={summary}
+          isExpanded={summaryOpen}
+          onToggle={() => setSummaryOpen((o) => !o)}
+          loading={summaryLoading}
+          error={summaryError}
+        />
+      )}
+
       {/* Messages */}
       <div 
         ref={messagesContainerRef}
         className="flex-1 overflow-y-auto px-4 py-4" 
         style={{ backgroundColor: 'var(--background)' }}
       >
-        <ChatSummaryDisplay 
-          summary={summary} 
-          isOpen={summaryOpen} 
-          onClose={() => setSummaryOpen(false)} 
-        />
         <MessageList 
           messages={messages} 
           currentUserId={user.id}
