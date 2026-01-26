@@ -67,22 +67,28 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-zinc-600 dark:text-zinc-400">Loading...</div>
+      <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: 'var(--background)' }}>
+        <div style={{ color: 'var(--muted-foreground)' }}>Loading...</div>
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 dark:bg-zinc-900">
-      <div className="w-full max-w-md rounded-lg border border-zinc-200 bg-white p-8 shadow-lg dark:border-zinc-800 dark:bg-zinc-900">
-        <h1 className="mb-6 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+    <div className="flex min-h-screen items-center justify-center px-4" style={{ backgroundColor: 'var(--background)' }}>
+      <div 
+        className="w-full max-w-md rounded-lg border p-8 shadow-lg"
+        style={{
+          backgroundColor: 'var(--background)',
+          borderColor: 'var(--border)',
+        }}
+      >
+        <h1 className="mb-6 text-2xl font-bold" style={{ color: 'var(--foreground)' }}>
           Settings
         </h1>
 
         <div className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--foreground)' }}>
               Theme
             </label>
             <ThemeToggle />
@@ -91,7 +97,18 @@ export default function SettingsPage() {
           <div className="flex gap-2">
             <button
               onClick={() => router.push('/')}
-              className="flex-1 rounded-lg border border-zinc-300 bg-white px-4 py-2 font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+              className="flex-1 rounded-lg border px-4 py-2 font-medium transition-colors"
+              style={{
+                backgroundColor: 'var(--background)',
+                borderColor: 'var(--border)',
+                color: 'var(--foreground)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--muted)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--background)'
+              }}
             >
               Back to Chat
             </button>

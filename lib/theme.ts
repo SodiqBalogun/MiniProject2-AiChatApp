@@ -60,6 +60,24 @@ export function applyTheme(theme: Theme) {
   }
 }
 
+export function ensureThemeApplied() {
+  if (typeof window === 'undefined') return
+  const theme = getTheme()
+  const root = window.document.documentElement
+  
+  // Check if theme classes are present, if not, re-apply
+  const expectedModeClass = theme.mode === 'system' 
+    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+    : theme.mode
+  
+  const hasModeClass = root.classList.contains(expectedModeClass)
+  const hasColorClass = theme.color === 'default' || root.classList.contains(`theme-${theme.color}`)
+  
+  if (!hasModeClass || !hasColorClass) {
+    applyTheme(theme)
+  }
+}
+
 export function initTheme() {
   if (typeof window === 'undefined') return
   const theme = getTheme()
