@@ -92,6 +92,17 @@ export function AIModeHistoryFloating({
 
   const hasInteractions = interactions.length > 0
 
+  /** Truncate prompt text for preview, preserving word boundaries */
+  const truncatePrompt = (text: string, maxLength: number = 60): string => {
+    if (text.length <= maxLength) return text
+    const truncated = text.slice(0, maxLength)
+    const lastSpace = truncated.lastIndexOf(' ')
+    if (lastSpace > maxLength * 0.7) {
+      return truncated.slice(0, lastSpace) + '...'
+    }
+    return truncated + '...'
+  }
+
   return (
     <div
       className="fixed z-50 flex w-96 max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-xl shadow-2xl"
@@ -144,9 +155,14 @@ export function AIModeHistoryFloating({
                     className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:opacity-90"
                     style={{ backgroundColor: opposite.muted, color: opposite.fg }}
                   >
-                    <span style={{ color: opposite.mutedFg }}>
-                      View · {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
-                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate" style={{ color: opposite.fg }}>
+                        {truncatePrompt(item.prompt)}
+                      </p>
+                      <p className="mt-0.5 text-xs" style={{ color: opposite.mutedFg }}>
+                        {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
+                      </p>
+                    </div>
                     <ChevronDown
                       className="h-4 w-4 shrink-0 transition-transform"
                       style={{
